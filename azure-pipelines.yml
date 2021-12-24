@@ -1,0 +1,113 @@
+trigger:
+  branches:
+    include:
+      - master
+      - develop
+  paths:
+    exclude:
+      - README.md
+pr:
+  branches:
+    include:
+    - master
+    - develop
+    - releases*
+  paths:
+    exclude:
+    - README.md
+  drafts: false
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  isDevelopBranch: $[eq(variables['Build.SourceBranch'], 'refs/heads/develop')]
+  isMasterBranch: $[eq(variables['Build.SourceBranch'], 'refs/heads/master')]
+  commitIdVar: $[variables['Build.SourceVersion']]
+  artifactName: 'BcanMvcAppArtifact'
+
+stages:
+- stage: CI
+  displayName: 'CI Stage'
+  jobs: 
+  - job: Build
+    steps:
+          
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore Packages'
+      inputs: 
+        command: restore
+        projects: BcanMvc.sln
+        includeNuGetOrg: true
+        noCache: false
+        verbosityRestore: 'normal'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Build solution'
+      inputs:
+        command: build
+        projects: BcanMvc.sln
+        arguments: '-c Release --no-restore -v n'
+
+    # - task: DotNetCoreCLI@2
+    #   displayName: 'Run unit tests'
+    #   inputs:
+    #     command: test
+    #     projects: BcanMvc.sln
+    #     arguments: '-c Release --no-build --no-restore --collect "XPlat Code coverage" -v n'
+
+    # - task: PublishCodeCoverageResults@1
+    #   displayName: 'Publish code coverage results'
+    #   inputs:
+    #     codeCoverageTool: 'Cobertura'
+    #     summaryFileLocation: $(Agent.TempDirectory)\**\coverage.cobertura.xml
+
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet publish'
+      inputs:
+        command: publish
+        publishWebProjects: false
+        arguments: '-c Release --no-build --no-restore -o "$(Build.ArtifactStagingDirectory)" -v n'
+        zipAfterPublish: true
+    
+    - publish: $(Build.ArtifactStagingDirectory)
+      displayName: 'Publish as artifact: $(artifactName)'
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+      artifact: '$(artifactName)'
+- stage: CD
+  dependsOn: CI
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  displayName: 'CD Stage'
+  jobs:
+    - deployment: DeployWebApi
+      displayName: 'Deploy web api to Azure'
+      environment: 'shine-dev'
+      strategy: 
+        runOnce: 
+          deploy:
+            steps:
+              - download: current
+                displayName: 'Download $(artifactName) artifact'
+                artifact: '$(artifactName)'
+              
+              - powershell: Get-ChildItem -Path $(Pipeline.Workspace)\$(artifactName)
+                displayName: 'Display directories'
+
+              - task: AzureWebApp@1
+                inputs:
+                  azureSubscription: 'AzureShineDev'
+                  appType: 'webAppLinux'
+                  appName: 'bcmvcapppg'
+                  package: '$(Pipeline.Workspace)/$(artifactName)/*.zip'
+              
+              # - task: AzureRmWebAppDeployment@4
+              #   inputs:
+              #     ConnectionType: 'AzureRM'
+              #     azureSubscription: 'AzureShineDev'
+              #     appType: 'apiApp'
+              #     WebAppName: 'ShineApp'
+              #     packageForLinux: '$(Pipeline.Workspace)/$(artifactName)/*.zip'
+              #     enableCustomDeployment: true
+              #     DeploymentType: 'zipDeploy'
+                
+        
