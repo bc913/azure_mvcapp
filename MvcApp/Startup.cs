@@ -2,12 +2,20 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Identity.Web;
+using Microsoft.Identity.Web.UI;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+
+using MvcApp.Services;
+using Microsoft.IdentityModel.Logging;
 
 namespace MvcApp
 {
@@ -23,7 +31,26 @@ namespace MvcApp
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            IdentityModelEventSource.ShowPII = true; 
+            services.AddOptions();
+
+            //     services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+            //         .AddMicrosoftIdentityWebApp(Configuration.GetSection("AzureAdB2C"));
+            //     services.AddControllersWithViews();
+            //    services.AddRazorPages()
+            //         .AddMicrosoftIdentityUI();
+
+            services.AddMicrosoftIdentityWebAppAuthentication(Configuration, Constants.AzureAdB2C)
+                    .EnableTokenAcquisitionToCallDownstreamApi(new string[] { Configuration["WebApi:Scope"] })
+                    .AddInMemoryTokenCaches();
+
+            // Add API
+            services.AddUserService(Configuration);
+
             services.AddControllersWithViews();
+            services.AddRazorPages().AddMicrosoftIdentityUI();
+
+            services.Configure<OpenIdConnectOptions>(Configuration.GetSection("AzureAdB2C"));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -44,6 +71,7 @@ namespace MvcApp
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
@@ -51,6 +79,7 @@ namespace MvcApp
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
+                endpoints.MapRazorPages();
             });
         }
     }
