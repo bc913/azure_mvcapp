@@ -16,6 +16,9 @@ using Microsoft.Extensions.Hosting;
 
 using MvcApp.Services;
 using Microsoft.IdentityModel.Logging;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Authorization;
+using System.Net;
 
 namespace MvcApp
 {
@@ -31,8 +34,22 @@ namespace MvcApp
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            IdentityModelEventSource.ShowPII = true; 
-            services.AddOptions();
+            IdentityModelEventSource.ShowPII = true;
+            //ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
+
+            // services.AddDistributedMemoryCache();
+
+            services.Configure<CookiePolicyOptions>(options =>
+            {
+                // This lambda determines whether user consent for non-essential cookies is needed for a given request.
+                options.CheckConsentNeeded = context => true;
+                options.MinimumSameSitePolicy = SameSiteMode.Unspecified;
+                // Handling SameSite cookie according to https://docs.microsoft.com/en-us/aspnet/core/security/samesite?view=aspnetcore-3.1
+                options.HandleSameSiteCookieCompatibility();
+            });
+
+            //services.AddOptions();
 
             //     services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
             //         .AddMicrosoftIdentityWebApp(Configuration.GetSection("AzureAdB2C"));
@@ -47,9 +64,16 @@ namespace MvcApp
             // Add API
             services.AddUserService(Configuration);
 
-            services.AddControllersWithViews();
-            services.AddRazorPages().AddMicrosoftIdentityUI();
-
+            services.AddControllersWithViews().AddMicrosoftIdentityUI();
+            // services.AddControllersWithViews(options =>
+            // {
+            //     var policy = new AuthorizationPolicyBuilder()
+            //         .RequireAuthenticatedUser()
+            //         .Build();
+            //     options.Filters.Add(new AuthorizeFilter(policy));
+            // });
+            services.AddRazorPages();
+            services.AddOptions();
             services.Configure<OpenIdConnectOptions>(Configuration.GetSection("AzureAdB2C"));
         }
 
@@ -69,6 +93,8 @@ namespace MvcApp
             app.UseHttpsRedirection();
             app.UseStaticFiles();
 
+
+            app.UseCookiePolicy();
             app.UseRouting();
 
             app.UseAuthentication();
