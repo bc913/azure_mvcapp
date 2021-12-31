@@ -1,8 +1,22 @@
-﻿@{
+﻿@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnv
+@{
     ViewData["Title"] = "Home Page";
 }
 
 <div class="text-center">
     <h1 class="display-4">Welcome to KONTLAR KAMARASI</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <!--<p> ASPNETCORE_ENVIRONMENT = @hostingEnv.EnvironmentName</p>-->
+    <p> Active Environment = @hostingEnv.EnvironmentName</p>
+    @* <environment include="Development">
+        <div>The effective tag is: &lt;environment include="Development"&gt;</div>
+    </environment>
+    <environment exclude="Development">
+        <div>The effective tag is: &lt;environment exclude="Development"&gt;</div>
+    </environment>
+    <environment include="Staging,Development,Staging_2">
+        <div>
+            The effective tag is:
+            &lt;environment include="Staging,Development,Staging_2"&gt;
+        </div>
+    </environment> *@
 </div>
