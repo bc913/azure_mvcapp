@@ -1,0 +1,32 @@
+@model IEnumerable<MvcApp.Models.EventViewModel>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h2>Events</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Title)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Type)
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Title)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Type)
+            </td>
+        </tr>
+}
+    </tbody>
+</table>

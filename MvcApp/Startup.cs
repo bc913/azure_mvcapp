@@ -63,6 +63,7 @@ namespace MvcApp
 
             // Add API
             services.AddUserService(Configuration);
+            services.AddEventService(Configuration);
 
             services.AddControllersWithViews().AddMicrosoftIdentityUI();
             // services.AddControllersWithViews(options =>
